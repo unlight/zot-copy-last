@@ -127,7 +127,7 @@ def zot_home_candidates():
     parent = Path(extension_dir).parent if extension_dir else None
     if parent and parent.name == "extensions" and parent.parent.name != ".zot":
         homes.append(parent.parent)
-    return homes
+    return list(dict.fromkeys(homes))
 
 
 def session_dir_name(cwd):
@@ -148,14 +148,18 @@ def read_session_id(path):
 def find_session_file():
     """Transcript of the active session, or None when it cannot be found."""
     if not current_session_id or not current_cwd:
+        log("no transcript fallback: session id or cwd is unknown")
         return None
+    searched = []
     for home in zot_home_candidates():
         directory = home / "sessions" / session_dir_name(current_cwd)
+        searched.append(str(directory))
         if not directory.is_dir():
             continue
         for path in directory.glob("*.jsonl"):
             if read_session_id(path) == current_session_id:
                 return path
+    log(f"no transcript for session {current_session_id}; looked in {searched}")
     return None
 
 
