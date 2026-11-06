@@ -95,19 +95,30 @@ def copy_to_clipboard(text):
     return False, "clipboard failed: " + "; ".join(failures)
 
 
+def respond(command_id, display="", error=""):
+    # The host drops display text when error is set, so send only one of them.
+    frame = {"type": "command_response", "id": command_id}
+    if error:
+        frame["error"] = error
+    else:
+        frame["action"] = "display"
+        frame["display"] = display
+    send(frame)
+
+
 def handle_command_invoked(frame):
     command_id = frame.get("id")
     if frame.get("name") != "copy":
-        send({"type": "command_response", "id": command_id, "action": "noop", "error": f"unknown command /{frame.get('name')}"})
+        respond(command_id, error=f"unknown command /{frame.get('name')}")
         return
     if not last_text.strip():
-        send({"type": "command_response", "id": command_id, "action": "display", "display": "Nothing to copy yet — no agent response in this session."})
+        respond(command_id, display="Nothing to copy yet — no agent response in this session.")
         return
     ok, reason = copy_to_clipboard(last_text)
-    if ok:
-        send({"type": "command_response", "id": command_id, "action": "display", "display": "Copied the last agent response to the clipboard."})
-    else:
-        send({"type": "command_response", "id": command_id, "action": "display", "error": reason})
+    if not ok:
+        respond(command_id, error=reason)
+        return
+    respond(command_id, display="Copied the last agent response to the clipboard.")
 
 
 def handle_event(frame):
@@ -124,7 +135,8 @@ def handle_event(frame):
 
 
 def serve():
-    send({"type": "hello", "name": NAME, "version": VERSION, "capabilities": CAPABILITIES})
+    hello = {"type": "hello", "name": NAME, "version": VERSION, "capabilities": CAPABILITIES}
+    send(hello)
     while True:
         line = sys.stdin.readline()
         if not line:
@@ -139,8 +151,16 @@ def serve():
             continue
         frame_type = frame.get("type")
         if frame_type == "hello_ack":
-            send({"type": "register_command", "name": "copy", "description": "copy the last agent response to the clipboard"})
-            send({"type": "subscribe", "events": ["assistant_message", "turn_start", "session_end"]})
+            register = {
+                "type": "register_command",
+                "name": NAME,
+                "description": "copy the last agent response to the clipboard",
+            }
+            send(register)
+            send({
+                "type": "subscribe",
+                "events": ["assistant_message", "turn_start", "session_end"],
+            })
             send({"type": "ready"})
         elif frame_type == "command_invoked":
             handle_command_invoked(frame)
