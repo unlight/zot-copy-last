@@ -15,7 +15,6 @@ CAPABILITIES = ["commands"]
 CLIPBOARD_TIMEOUT = 2  # seconds per candidate, keeps the frame loop responsive
 
 IS_MACOS = sys.platform == "darwin"
-IS_WINDOWS = sys.platform.startswith("win") or sys.platform in ("cygwin", "msys")
 
 last_text = ""
 last_session_id = ""
@@ -40,9 +39,6 @@ def log(message):
 def clipboard_candidates():
     if IS_MACOS:
         return [["/usr/bin/pbcopy"]]
-    if IS_WINDOWS:
-        script = "[Console]::InputEncoding = [System.Text.Encoding]::UTF8\r\nSet-Clipboard -Value ([Console]::In.ReadToEnd())"
-        return [["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script]]
     candidates = []
     if os.environ.get("WAYLAND_DISPLAY"):
         candidates.append(["wl-copy"])
@@ -52,7 +48,7 @@ def clipboard_candidates():
 
 
 def clipboard_available():
-    if IS_MACOS or IS_WINDOWS:
+    if IS_MACOS:
         return True
     return bool(os.environ.get("WAYLAND_DISPLAY") or os.environ.get("DISPLAY"))
 
