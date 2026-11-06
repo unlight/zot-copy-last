@@ -74,4 +74,4 @@ zot-copy-last/
 
 ## License
 
-MIT, Copyright (c) 2026
+[MIT](https://opensource.org/licenses/MIT), Copyright (c) 2026
