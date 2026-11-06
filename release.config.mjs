@@ -1,6 +1,23 @@
 /**
  * @type {import('semantic-release').GlobalConfig}
  */
+const sentenceCase = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
+
+// Commits stay lowercase; every rendered notes entry starts with a capital.
+// writerOpts is merged over the preset's, so grouping and links stay intact.
+const capitalisedSubjects = {
+  finalizeContext: (context) => ({
+    ...context,
+    commitGroups: (context.commitGroups ?? []).map((group) => ({
+      ...group,
+      commits: group.commits.map((commit) => ({
+        ...commit,
+        subject: sentenceCase(commit.subject),
+      })),
+    })),
+  }),
+};
+
 export default {
   branches: ['master'],
   plugins: [
@@ -14,6 +31,7 @@ export default {
       '@semantic-release/release-notes-generator',
       {
         preset: 'conventionalcommits',
+        writerOpts: capitalisedSubjects,
       },
     ],
     '@semantic-release/changelog',
