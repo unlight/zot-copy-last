@@ -26,10 +26,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-
-      - name: 'Install Dependencies'
-        run: npm ci
 
       - name: 'Set git identity'
         # @semantic-release/git runs a bare `git commit`; the runner has no identity.
@@ -41,6 +37,15 @@ jobs:
         run: python3 -m unittest test_copy -v
 
       - name: 'Release'
-        run: npx semantic-release
+        # npx installs the pinned release tooling for this run only, so the
+        # repository needs no package.json and no lockfile.
+        run: |
+          npx --yes \
+            -p semantic-release@25.0.9 \
+            -p @semantic-release/changelog@7.0.0 \
+            -p @semantic-release/git@11.0.1 \
+            -p @semantic-release/github@12.0.10 \
+            -p conventional-changelog-conventionalcommits@10.4.1 \
+            semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

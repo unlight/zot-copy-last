@@ -19,7 +19,7 @@ export default {
     '@semantic-release/changelog',
     // No @semantic-release/npm: nothing is published. The extension installs
     // from a git checkout, so a release is the tag, the GitHub release and the
-    // changelog commit. package.json keeps its 0.0.0 and is never rewritten.
+    // changelog commit. There is no package.json to bump either.
     '@semantic-release/git',
     [
       '@semantic-release/github',
