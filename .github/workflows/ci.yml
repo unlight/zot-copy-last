@@ -63,19 +63,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: 'Release'
-        # npx installs the release tooling for this run only, so the repository
-        # needs no package.json and no lockfile. Majors are pinned, patches flow.
+      - name: 'Install release tooling'
+        # Local install is required: release.config.mjs imports
+        # changelog-sentence-case, and npx --package does not expose its temp
+        # modules to the config. --no-save keeps the checkout manifest-free.
         # The preset stays on 9: major 10 needs conventional-changelog-writer@9
         # and semantic-release 25 ships writer@8, so it dies in generateNotes
         # with "Missing helper". Bump both together.
         run: |
-          npx --yes \
-            -p semantic-release@25 \
-            -p @semantic-release/changelog@7 \
-            -p @semantic-release/git@11 \
-            -p @semantic-release/github@12 \
-            -p conventional-changelog-conventionalcommits@9 \
-            semantic-release
+          npm install --no-save --no-package-lock \
+            semantic-release@25 \
+            @semantic-release/changelog@7 \
+            @semantic-release/git@11 \
+            @semantic-release/github@12 \
+            conventional-changelog-conventionalcommits@9 \
+            changelog-sentence-case@1
+
+      - name: 'Release'
+        # Majors are pinned above, patches flow.
+        run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
