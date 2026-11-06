@@ -56,3 +56,4 @@ zot-copy-last/
 
 - Python 3
 - zot 0.4.x
+- A system clipboard tool: `pbcopy` (macOS), `wl-copy` / `xclip` / `xsel` (Linux), PowerShell `Set-Clipboard` (Windows)
