@@ -40,17 +40,22 @@ def clipboard_argv_candidates():
 
 
 def copy_to_clipboard(text):
-    for argv in clipboard_argv_candidates():
+    candidates = clipboard_argv_candidates()
+    found_any = False
+    for argv in candidates:
         exe = shutil.which(argv[0])
         if exe is None:
             continue
+        found_any = True
         try:
-            proc = subprocess.run([exe, *argv[1:]], input=text, capture_output=True, timeout=2)
+            proc = subprocess.run([exe, *argv[1:]], input=text, capture_output=True, timeout=2, text=True)
             if proc.returncode == 0:
-                return True
-        except Exception:
-            continue
-    return False
+                return True, ""
+        except Exception as err:
+            return False, f"clipboard command failed: {err}"
+    if not found_any:
+        return False, "no clipboard tool available (xclip, wl-copy, pbcopy, ...)"
+    return False, "clipboard command failed"
 
 
 def handle_command_invoked(frame):
@@ -61,10 +66,11 @@ def handle_command_invoked(frame):
     if not last_text.strip():
         send({"type": "command_response", "id": command_id, "action": "display", "display": "Nothing to copy yet — no agent response in this session."})
         return
-    if copy_to_clipboard(last_text):
+    ok, reason = copy_to_clipboard(last_text)
+    if ok:
         send({"type": "command_response", "id": command_id, "action": "display", "display": "Copied the last agent response to the clipboard."})
     else:
-        send({"type": "command_response", "id": command_id, "action": "display", "error": "clipboard copy failed: no clipboard tool available"})
+        send({"type": "command_response", "id": command_id, "action": "display", "error": reason})
 
 
 def handle_event(frame):
