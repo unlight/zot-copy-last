@@ -28,7 +28,8 @@ jobs:
           node-version: 24
 
       - name: 'Set git identity'
-        # @semantic-release/git runs a bare `git commit`; the runner has no identity.
+        # @semantic-release/git runs a bare `git commit`; the runner has no
+        # identity, and git fails with "Author identity unknown" without one.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
