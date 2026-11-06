@@ -66,13 +66,16 @@ jobs:
       - name: 'Release'
         # npx installs the release tooling for this run only, so the repository
         # needs no package.json and no lockfile. Majors are pinned, patches flow.
+        # The preset stays on 9: major 10 needs conventional-changelog-writer@9
+        # and semantic-release 25 ships writer@8, so it dies in generateNotes
+        # with "Missing helper". Bump both together.
         run: |
           npx --yes \
             -p semantic-release@25 \
             -p @semantic-release/changelog@7 \
             -p @semantic-release/git@11 \
             -p @semantic-release/github@12 \
-            -p conventional-changelog-conventionalcommits@10 \
+            -p conventional-changelog-conventionalcommits@9 \
             semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
