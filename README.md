@@ -1,0 +1,58 @@
+# zot-copy
+
+Copy the last agent response to the system clipboard.
+
+## Install
+
+```bash
+zot ext install /home/roman/Dev/zot-copy-last
+```
+
+Or run ad-hoc:
+
+```bash
+zot --ext /home/roman/Dev/zot-copy-last
+```
+
+Restart zot after installing or updating.
+
+## Usage
+
+Type:
+
+```text
+/copy
+```
+
+Copies the most recent agent response from the current session to the
+system clipboard and posts a confirmation note back into the chat.
+
+## How it works
+
+- **Event subscription** — the extension subscribes to the
+  `assistant_message` lifecycle event and keeps the latest visible
+  assistant text for the active session.
+- **Clipboard write** — on `/copy` the stored text is written through the
+  platform clipboard tool: `pbcopy` on macOS, `wl-copy` / `xclip` / `xsel`
+  on Linux, or PowerShell `Set-Clipboard` on Windows.
+
+## Development
+
+The extension is a single executable Python script — no build step.
+
+```bash
+chmod +x copy.py
+```
+
+## Structure
+
+```
+zot-copy-last/
+├── extension.json    # manifest
+└── copy.py           # source code
+```
+
+## Requirements
+
+- Python 3
+- zot 0.4.x
