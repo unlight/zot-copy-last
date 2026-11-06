@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: CI
 
 on:
   - push
@@ -31,3 +31,48 @@ jobs:
 
       - name: 'Test'
         run: python -m unittest test_copy -v
+
+  release:
+    name: 'Changelog, tag, release'
+    # needs: every matrix entry passed; the ref guard keeps pull requests out.
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      # Overrides the read-only default: @semantic-release/git pushes the
+      # changelog commit and the tag, @semantic-release/github opens the release.
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: 'Checkout Repository'
+        uses: actions/checkout@v7
+        with:
+          # semantic-release needs the full history and the existing tags.
+          fetch-depth: 0
+
+      - name: 'Setup Node'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: 'Set git identity'
+        # @semantic-release/git runs a bare `git commit`; the runner has no
+        # identity, and git fails with "Author identity unknown" without one.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: 'Release'
+        # npx installs the release tooling for this run only, so the repository
+        # needs no package.json and no lockfile. Majors are pinned, patches flow.
+        run: |
+          npx --yes \
+            -p semantic-release@25 \
+            -p @semantic-release/changelog@7 \
+            -p @semantic-release/git@11 \
+            -p @semantic-release/github@12 \
+            -p conventional-changelog-conventionalcommits@10 \
+            semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
