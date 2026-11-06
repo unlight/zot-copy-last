@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/unlight/zot-copy-last/compare/v1.0.0...v1.0.1) (2026-11-06)
+
+### Bug Fixes
+
+* Keep completed response across turn start ([9a6af14](https://github.com/unlight/zot-copy-last/commit/9a6af145894d936a1ea2c53d26409284d05f7ee2))
+
 ## 1.0.0 (2026-11-06)
 
 ### Features

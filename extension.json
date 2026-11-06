@@ -1,6 +1,6 @@
 {
   "name": "copy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "exec": "./copy.py",
   "language": "python",
   "description": "copy the last agent response to the system clipboard",

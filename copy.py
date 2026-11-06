@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import cast
 
 NAME = "copy"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 CAPABILITIES = ["commands"]
 CLIPBOARD_TIMEOUT = 2  # seconds per candidate
 CLIPBOARD_BUDGET = 5  # seconds for the whole chain, keeps the frame loop responsive
