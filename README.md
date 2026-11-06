@@ -38,12 +38,18 @@ system clipboard and posts a confirmation note back into the chat.
   fallback chain.
 - **Encoding** — frames are read and written as UTF-8 regardless of the host
   locale, and clipboard payloads are handed over as UTF-8 too.
+- **Transcript fallback** — a session loaded with `/sessions` replays no
+  events, so when the cache is empty `/copy` reads the last assistant message
+  from `<state dir>/sessions/<hash of cwd>/*.jsonl` instead of failing.
 
 ## Known limitations
 
 - A `/btw` side dialog emits `assistant_message` attributed to the active
   session (host behaviour), so its reply can replace the text `/copy` reads.
 - Only the Linux and macOS clipboard tools are supported.
+- The transcript fallback depends on zot's state layout (no host API exposes
+  the session file), so a future change there degrades `/copy` back to
+  "nothing to copy" rather than to a wrong answer.
 
 ## Development
 

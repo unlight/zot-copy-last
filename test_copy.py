@@ -1,5 +1,6 @@
 """Wire-level tests for copy.py: real subprocess, fake clipboard tools."""
 
+import hashlib
 import json
 import os
 import subprocess
@@ -46,8 +47,23 @@ class ExtensionTest(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        self.bin = Path(tmp.name)
-        self.capture = self.bin / CAPTURED
+        base = Path(tmp.name)
+        self.bin = base / "bin"
+        self.bin.mkdir()
+        self.home = base / "zot-home"
+        self.home.mkdir()
+        self.cwd = "/work/demo"
+        self.capture = base / CAPTURED
+
+    def write_session(self, session_id, messages):
+        """Lay out a transcript the way zot does: sessions/<sha256(cwd)[:16]>."""
+        directory = self.home / "sessions" / hashlib.sha256(self.cwd.encode()).hexdigest()[:16]
+        directory.mkdir(parents=True, exist_ok=True)
+        rows = [{"type": "meta", "meta": {"id": session_id, "cwd": self.cwd, "alias": "old-one"}}]
+        rows += [{"type": "message", "message": message} for message in messages]
+        path = directory / "named-old-one.jsonl"
+        path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+        return path
 
     def stub_tool(self, name, exit_code=0):
         """Install a fake clipboard tool that captures stdin and exits with code."""
@@ -57,7 +73,15 @@ class ExtensionTest(unittest.TestCase):
         return script
 
     def run_lines(self, lines):
-        return run_extension(lines, self.bin)[0]
+        env = {"ZOT_HOME": str(self.home)}
+        return run_extension(lines, self.bin, env)[0]
+
+    def hello_ack(self):
+        return {
+            "type": "hello_ack",
+            "cwd": self.cwd,
+            "extension_dir": str(self.home / "extensions" / "copy"),
+        }
 
     def test_handshake_order(self):
         frames = self.run_lines([{"type": "hello_ack"}])
@@ -117,6 +141,33 @@ class ExtensionTest(unittest.TestCase):
             {"type": "command_invoked", "id": "c1", "name": "copy"},
         ])
         self.assertEqual(responses(frames)[0]["id"], "c1")
+
+    @LINUX_ONLY
+    def test_copies_transcript_text_after_session_load(self):
+        self.stub_tool("xclip")
+        self.write_session("sess-1", [
+            {"role": "user", "content": [{"text": "вопрос"}]},
+            {"role": "assistant", "content": [{"text": "старый ответ"}]},
+            {"role": "assistant", "content": [{"summary": "размышление"}]},
+            {"role": "assistant", "content": [{"id": "t1", "name": "bash", "arguments": {}}]},
+            {"role": "assistant", "content": [{"text": "новый ответ"}]},
+        ])
+        frames = self.run_lines([
+            self.hello_ack(),
+            {"type": "event", "event": "session_start", "session_id": "sess-1", "cwd": self.cwd},
+            {"type": "command_invoked", "id": "c1", "name": "copy"},
+        ])
+        self.assertTrue(responses(frames)[0]["display"].startswith("Copied the last"))
+        self.assertEqual(self.capture.read_text(encoding="utf-8"), "новый ответ")
+
+    def test_unknown_session_stays_empty(self):
+        self.write_session("sess-1", [{"role": "assistant", "content": [{"text": "чужое"}]}])
+        frames = self.run_lines([
+            self.hello_ack(),
+            {"type": "event", "event": "session_start", "session_id": "other", "cwd": self.cwd},
+            {"type": "command_invoked", "id": "c1", "name": "copy"},
+        ])
+        self.assertTrue(responses(frames)[0]["display"].startswith("Nothing to copy yet"))
 
 
 if __name__ == "__main__":
