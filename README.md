@@ -72,23 +72,6 @@ zot-copy-last/
 └── test_copy.py     # wire-level tests
 ```
 
-## Release
-
-Releases are cut by CI, never by hand. `.github/workflows/ci.yml` has two
-jobs, and the second depends on the first:
-
-- `test` runs the suite on Python 3.9, 3.12 and 3.14 for every push and pull
-  request. It stays on `ubuntu-24.04`: the runner image has to ship a prebuilt
-  interpreter for every entry in the matrix.
-- `release` needs every `test` entry to pass, and only runs for a push to
-  `master`. `semantic-release` then decides the bump from Conventional Commits
-  (`fix` → patch, `feat` → minor, `!`/`BREAKING CHANGE` → major) and produces
-  `CHANGELOG.md`, the `vX.Y.Z` tag and the GitHub release.
-
-Nothing is published to npm and the repository carries no Node manifest: the
-release tooling is installed by `npx` with majors pinned in the workflow, and
-`release.config.mjs` only configures the plugins.
-
 ## Requirements
 
 - Python 3.7+
