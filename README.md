@@ -94,7 +94,6 @@ and OSC 52, with concrete errors instead of a false success.
   scanning the whole session file on every `/copy`.
 - **P2** Add tests for platform-specific backends, the picker and transcript
   edge cases.
-- **P2** Sync or remove the stale version in `extension.json` and `copy.py`.
 - **P2** Align the documented Python floor with CI.
 
 ## Development
@@ -115,6 +114,7 @@ no zot session and no clipboard access are needed.
 zot-copy-last/
 ├── extension.json   # manifest
 ├── copy.py          # source code
+├── sync_version.py   # release version sync
 └── test_copy.py     # wire-level tests
 ```
 

@@ -21,10 +21,23 @@ export default {
       },
     ],
     '@semantic-release/changelog',
+    [
+      '@semantic-release/exec',
+      {
+        // prepare runs before the release commit and tag, so both carry the
+        // version written into the manifest and the extension constant.
+        prepareCmd: 'python3 sync_version.py ${nextRelease.version}',
+      },
+    ],
     // No @semantic-release/npm: nothing is published. The extension installs
     // from a git checkout, so a release is the tag, the GitHub release and the
     // changelog commit. There is no package.json to bump either.
-    '@semantic-release/git',
+    [
+      '@semantic-release/git',
+      {
+        assets: ['CHANGELOG.md', 'extension.json', 'copy.py'],
+      },
+    ],
     [
       '@semantic-release/github',
       {
