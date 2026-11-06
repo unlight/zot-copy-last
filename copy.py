@@ -1,18 +1,30 @@
 #!/usr/bin/env python3
 """zot /copy — copy the last agent response to the system clipboard."""
 
+import io
 import json
 import os
 import shutil
 import subprocess
 import sys
+from typing import cast
 
 NAME = "copy"
 VERSION = "1.0.0"
-CAPABILITIES = ["commands", "events"]
+CAPABILITIES = ["commands"]
+CLIPBOARD_TIMEOUT = 2  # seconds per candidate, keeps the frame loop responsive
+
+IS_MACOS = sys.platform == "darwin"
+IS_WINDOWS = sys.platform.startswith("win") or sys.platform in ("cygwin", "msys")
 
 last_text = ""
 last_session_id = ""
+
+
+def configure_stdio():
+    # zot speaks UTF-8 JSON lines; the host locale must not decode them.
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        cast(io.TextIOWrapper, stream).reconfigure(encoding="utf-8", errors="replace")
 
 
 def send(frame):
@@ -25,10 +37,10 @@ def log(message):
     sys.stderr.flush()
 
 
-def clipboard_argv_candidates():
-    if sys.platform == "darwin":
+def clipboard_candidates():
+    if IS_MACOS:
         return [["/usr/bin/pbcopy"]]
-    if sys.platform == "windows":
+    if IS_WINDOWS:
         script = "[Console]::InputEncoding = [System.Text.Encoding]::UTF8\r\nSet-Clipboard -Value ([Console]::In.ReadToEnd())"
         return [["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script]]
     candidates = []
@@ -40,30 +52,44 @@ def clipboard_argv_candidates():
 
 
 def clipboard_available():
-    if sys.platform == "darwin" or sys.platform == "windows":
+    if IS_MACOS or IS_WINDOWS:
         return True
     return bool(os.environ.get("WAYLAND_DISPLAY") or os.environ.get("DISPLAY"))
 
 
+def try_candidate(argv, text):
+    exe = shutil.which(argv[0])
+    if exe is None:
+        return f"{argv[0]} not found"
+    try:
+        proc = subprocess.run(
+            [exe, *argv[1:]],
+            input=text,
+            encoding="utf-8",
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=CLIPBOARD_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return f"{argv[0]} timed out after {CLIPBOARD_TIMEOUT}s"
+    except OSError as err:
+        return f"{argv[0]}: {err.strerror or err}"
+    if proc.returncode != 0:
+        return f"{argv[0]} exited with {proc.returncode}"
+    return ""
+
+
 def copy_to_clipboard(text):
     if not clipboard_available():
-        return False, "clipboard unavailable: no X11/Wayland display detected (WAYLAND_DISPLAY/DISPLAY unset)"
-    candidates = clipboard_argv_candidates()
-    found_any = False
-    for argv in candidates:
-        exe = shutil.which(argv[0])
-        if exe is None:
-            continue
-        found_any = True
-        try:
-            proc = subprocess.run([exe, *argv[1:]], input=text, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5, text=True)
-            if proc.returncode == 0:
-                return True, ""
-        except Exception as err:
-            return False, f"clipboard command failed: {err}"
-    if not found_any:
-        return False, "no clipboard tool available (xclip, wl-copy, pbcopy, ...)"
-    return False, "clipboard command failed"
+        return False, "clipboard unavailable: no X11/Wayland display (DISPLAY/WAYLAND_DISPLAY unset)"
+    failures = []
+    for argv in clipboard_candidates():
+        failure = try_candidate(argv, text)
+        if not failure:
+            return True, ""
+        log(failure)
+        failures.append(failure)
+    return False, "clipboard failed: " + "; ".join(failures)
 
 
 def handle_command_invoked(frame):
@@ -95,6 +121,7 @@ def handle_event(frame):
 
 
 def main():
+    configure_stdio()
     send({"type": "hello", "name": NAME, "version": VERSION, "capabilities": CAPABILITIES})
     while True:
         line = sys.stdin.readline()
