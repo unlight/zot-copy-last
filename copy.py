@@ -18,11 +18,18 @@ VERSION = "1.0.0"
 CAPABILITIES = ["commands"]
 CLIPBOARD_TIMEOUT = 2  # seconds per candidate
 CLIPBOARD_BUDGET = 5  # seconds for the whole chain, keeps the frame loop responsive
-SUBSCRIBED_EVENTS = ["assistant_message", "session_start", "turn_start", "session_end"]
+SUBSCRIBED_EVENTS = [
+    "assistant_message",
+    "turn_end",
+    "session_start",
+    "turn_start",
+    "session_end",
+]
 
 IS_MACOS = sys.platform == "darwin"
 
 last_text = ""
+step_text = ""
 current_session_id = ""
 current_cwd = ""
 extension_dir = ""
@@ -227,18 +234,26 @@ def handle_command_invoked(frame):
 
 
 def handle_event(frame):
-    global last_text, current_session_id, current_cwd
+    global last_text, step_text, current_session_id, current_cwd
     event_name = frame.get("event")
     current_session_id = frame.get("session_id") or current_session_id
     current_cwd = frame.get("cwd") or current_cwd
     if event_name == "assistant_message":
-        # The host emits one event per model step; the last one wins.
+        # The host emits one event per model step; only a final step is an answer.
         text = frame.get("text") or ""
         if text.strip():
-            last_text = text
-    elif event_name in ("session_start", "turn_start", "session_end"):
-        # A fresh turn or session has no complete answer yet.
+            step_text = text
+    elif event_name == "turn_end":
+        # Tool-use steps are narration, not the final response.
+        if frame.get("stop") != "tool_use" and step_text.strip():
+            last_text = step_text
+        step_text = ""
+    elif event_name == "turn_start":
+        # Keep the previous answer available while a new turn is running.
+        step_text = ""
+    elif event_name in ("session_start", "session_end"):
         last_text = ""
+        step_text = ""
 
 
 def handle_hello_ack(frame):

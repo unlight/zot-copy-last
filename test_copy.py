@@ -91,6 +91,7 @@ class ExtensionTest(unittest.TestCase):
         )
         self.assertEqual(frames[0]["name"], "copy")
         self.assertIn("assistant_message", frames[2]["events"])
+        self.assertIn("turn_end", frames[2]["events"])
 
     def test_nothing_to_copy_before_any_message(self):
         frames = self.run_lines([
@@ -105,6 +106,7 @@ class ExtensionTest(unittest.TestCase):
         frames = self.run_lines([
             {"type": "hello_ack"},
             {"type": "event", "event": "assistant_message", "text": "привет"},
+            {"type": "event", "event": "turn_end", "stop": "end_turn"},
             {"type": "command_invoked", "id": "c1", "name": "copy"},
         ])
         self.assertTrue(responses(frames)[0]["display"].startswith("Copied the last"))
@@ -117,19 +119,58 @@ class ExtensionTest(unittest.TestCase):
         frames = self.run_lines([
             {"type": "hello_ack"},
             {"type": "event", "event": "assistant_message", "text": "text"},
+            {"type": "event", "event": "turn_end", "stop": "end_turn"},
             {"type": "command_invoked", "id": "c1", "name": "copy"},
         ])
         response = responses(frames)[0]
         self.assertIn("exited with 1", response["error"])
         self.assertNotIn("display", response)
 
-    def test_turn_start_clears_cache(self):
-        for boundary in ("turn_start", "session_end"):
+    @LINUX_ONLY
+    def test_turn_start_keeps_last_completed_response(self):
+        self.stub_tool("xclip")
+        frames = self.run_lines([
+            {"type": "hello_ack"},
+            {"type": "event", "event": "assistant_message", "text": "готово"},
+            {"type": "event", "event": "turn_end", "stop": "end_turn"},
+            {"type": "event", "event": "turn_start", "step": 2},
+            {"type": "command_invoked", "id": "c1", "name": "copy"},
+        ])
+        self.assertTrue(responses(frames)[0]["display"].startswith("Copied the last"))
+        self.assertEqual(self.capture.read_text(encoding="utf-8"), "готово")
+
+    def test_tool_use_step_is_not_copied(self):
+        frames = self.run_lines([
+            {"type": "hello_ack"},
+            {"type": "event", "event": "assistant_message", "text": "I will inspect"},
+            {"type": "event", "event": "turn_end", "stop": "tool_use"},
+            {"type": "command_invoked", "id": "c1", "name": "copy"},
+        ])
+        self.assertTrue(responses(frames)[0]["display"].startswith("Nothing to copy yet"))
+
+    @LINUX_ONLY
+    def test_tool_use_step_does_not_replace_previous_response(self):
+        self.stub_tool("xclip")
+        frames = self.run_lines([
+            {"type": "hello_ack"},
+            {"type": "event", "event": "assistant_message", "text": "готово"},
+            {"type": "event", "event": "turn_end", "stop": "end_turn"},
+            {"type": "event", "event": "turn_start", "step": 2},
+            {"type": "event", "event": "assistant_message", "text": "I will inspect"},
+            {"type": "event", "event": "turn_end", "stop": "tool_use"},
+            {"type": "command_invoked", "id": "c1", "name": "copy"},
+        ])
+        self.assertTrue(responses(frames)[0]["display"].startswith("Copied the last"))
+        self.assertEqual(self.capture.read_text(encoding="utf-8"), "готово")
+
+    def test_session_boundary_clears_completed_response(self):
+        for boundary in ("session_start", "session_end"):
             with self.subTest(boundary=boundary):
                 frames = self.run_lines([
                     {"type": "hello_ack"},
                     {"type": "event", "event": "assistant_message", "text": "preamble"},
-                    {"type": "event", "event": boundary, "step": 2},
+                    {"type": "event", "event": "turn_end", "stop": "end_turn"},
+                    {"type": "event", "event": boundary},
                     {"type": "command_invoked", "id": "c1", "name": "copy"},
                 ])
                 self.assertTrue(responses(frames)[0]["display"].startswith("Nothing to copy yet"))

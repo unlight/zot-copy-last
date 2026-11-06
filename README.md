@@ -30,8 +30,10 @@ system clipboard and posts a confirmation note back into the chat.
 ## How it works
 
 - **Event subscription** — the extension subscribes to `assistant_message`
-  and keeps the last non-empty text. `turn_start` and `session_end` clear the
-  cache, so `/copy` never returns a preamble left over from an earlier step.
+  and `turn_end`. A response is committed only when its turn ends without
+  `stop: "tool_use"`, so intermediate narration is never copied. `turn_start`
+  resets only the current step, which keeps the previous answer available
+  while a new turn is running; session boundaries clear the cache.
 - **Clipboard write** — on `/copy` the stored text is written through the
   platform clipboard tool: `pbcopy` on macOS, `wl-copy` / `xclip` / `xsel`
   on Linux. Candidates are tried in order; a broken tool does not stop the
@@ -50,6 +52,50 @@ system clipboard and posts a confirmation note back into the chat.
 - The transcript fallback depends on zot's state layout (no host API exposes
   the session file), so a future change there degrades `/copy` back to
   "nothing to copy" rather than to a wrong answer.
+
+## TODO / Ideas
+
+### Comparison
+
+Compared with the built-in `/copy` implementations in Claude Code 2.1.316 and
+Pi 1.5.0.
+
+| Capability             | Claude Code    | Pi       | zot-copy |
+| ---------------------- | -------------- | -------- | -------- |
+| Copy last response     | yes            | yes      | yes      |
+| Copy selection         | copy-on-select | `Ctrl+X` | no       |
+| `/copy N`              | yes            | no       | no       |
+| Code-block picker      | yes            | no       | no       |
+| Always full response   | yes            | no       | no       |
+| Write to file          | `w`            | no       | no       |
+| OSC 52 / SSH           | yes            | yes      | no       |
+| tmux support           | yes            | yes      | no       |
+| Windows / Termux / WSL | yes            | yes      | no       |
+| Copy during a new turn | yes            | yes      | yes      |
+
+Pi's `Ctrl+X` copies the selection when one exists, otherwise the last
+assistant message. Claude Code also has an optional index, markdown-table
+alignment, quoted-text handling and copy-on-select. Pi has a notably robust
+clipboard chain: native clipboard, platform commands, WSL PowerShell, Termux
+and OSC 52, with concrete errors instead of a false success.
+
+### Ideas
+
+- **P0 (done)** Commit responses on `turn_end`, discard `tool_use` steps and
+  keep the previous completed answer across `turn_start`.
+- **P1** Keep a short response history and support `/copy N`.
+- **P1** Add `/copy file [path]` to bypass the clipboard on SSH/headless hosts.
+- **P1** Add a panel picker for fenced code blocks, the full response and an
+  "always copy full response" setting.
+- **P1** Add Windows (`clip.exe`/PowerShell), Termux and WSL clipboard backends.
+- **P2** Add OSC 52 and tmux fallbacks. OSC 52 from an extension needs a
+  `/dev/tty` write or a host API; this has to be verified first.
+- **P2** Read long transcripts from the tail and cache the result instead of
+  scanning the whole session file on every `/copy`.
+- **P2** Add tests for platform-specific backends, the picker and transcript
+  edge cases.
+- **P2** Sync or remove the stale version in `extension.json` and `copy.py`.
+- **P2** Align the documented Python floor with CI.
 
 ## Development
 
@@ -76,7 +122,8 @@ zot-copy-last/
 
 - Python 3.7+
 - zot 0.4.x
-- A system clipboard tool: `pbcopy` (macOS), `wl-copy` / `xclip` / `xsel` (Linux)
+- A system clipboard tool: `pbcopy` (macOS), `wl-copy` / `xclip` / `xsel`
+  (Linux)
 
 ## License
 
