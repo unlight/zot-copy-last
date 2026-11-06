@@ -29,15 +29,21 @@ system clipboard and posts a confirmation note back into the chat.
 
 ## How it works
 
-- **Event subscription** — the extension subscribes to the
-  `assistant_message` lifecycle event and keeps the latest visible
-  assistant text for the active session.
+- **Event subscription** — the extension subscribes to `assistant_message`
+  and keeps the last non-empty text. `turn_start` and `session_end` clear the
+  cache, so `/copy` never returns a preamble left over from an earlier step.
 - **Clipboard write** — on `/copy` the stored text is written through the
   platform clipboard tool: `pbcopy` on macOS, `wl-copy` / `xclip` / `xsel`
   on Linux. Candidates are tried in order; a broken tool does not stop the
   fallback chain.
 - **Encoding** — frames are read and written as UTF-8 regardless of the host
   locale, and clipboard payloads are handed over as UTF-8 too.
+
+## Known limitations
+
+- A `/btw` side dialog emits `assistant_message` attributed to the active
+  session (host behaviour), so its reply can replace the text `/copy` reads.
+- Only the Linux and macOS clipboard tools are supported.
 
 ## Development
 
