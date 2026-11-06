@@ -39,7 +39,15 @@ def clipboard_argv_candidates():
     return candidates
 
 
+def clipboard_available():
+    if sys.platform == "darwin" or sys.platform == "windows":
+        return True
+    return bool(os.environ.get("WAYLAND_DISPLAY") or os.environ.get("DISPLAY"))
+
+
 def copy_to_clipboard(text):
+    if not clipboard_available():
+        return False, "clipboard unavailable: no X11/Wayland display detected (WAYLAND_DISPLAY/DISPLAY unset)"
     candidates = clipboard_argv_candidates()
     found_any = False
     for argv in candidates:
