@@ -66,6 +66,20 @@ zot-copy-last/
 └── test_copy.py     # wire-level tests
 ```
 
+## Release
+
+Releases are cut by CI, never by hand. `.github/workflows/release.yml` runs
+`semantic-release` on every push to `master`:
+
+- Conventional Commits decide the bump (`fix` → patch, `feat` → minor,
+  `!`/`BREAKING CHANGE` → major).
+- `CHANGELOG.md`, the `vX.Y.Z` git tag and the GitHub release are generated.
+- Nothing is published to npm: the extension ships as a git checkout, so
+  `package.json` carries only the release tooling and stays at `0.0.0`.
+
+`.github/workflows/ci.yml` runs the test suite on Python 3.9, 3.12 and 3.13 for
+every push and pull request.
+
 ## Requirements
 
 - Python 3.7+

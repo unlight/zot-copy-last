@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  # @semantic-release/git pushes the changelog commit and the tag.
+  contents: write
+  # @semantic-release/github opens the release and comments on issues/PRs.
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: 'Changelog, tag, release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout Repository'
+        uses: actions/checkout@v7
+        with:
+          # semantic-release needs the full history and the existing tags.
+          fetch-depth: 0
+
+      - name: 'Setup Node'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: 'Install Dependencies'
+        run: npm ci
+
+      - name: 'Set git identity'
+        # @semantic-release/git runs a bare `git commit`; the runner has no identity.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: 'Test'
+        run: python3 -m unittest test_copy -v
+
+      - name: 'Release'
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
