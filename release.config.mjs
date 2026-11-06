@@ -17,16 +17,10 @@ export default {
       },
     ],
     '@semantic-release/changelog',
-    // No @semantic-release/npm: nothing is published. This extension is
-    // installed by cloning the repository, so a release is a git tag, a
-    // GitHub release and an updated CHANGELOG.md.
-    [
-      '@semantic-release/git',
-      {
-        // package.json stays at 0.0.0 on purpose, only the changelog moves.
-        assets: ['CHANGELOG.md'],
-      },
-    ],
+    // No @semantic-release/npm: nothing is published. The extension installs
+    // from a git checkout, so a release is the tag, the GitHub release and the
+    // changelog commit. package.json keeps its 0.0.0 and is never rewritten.
+    '@semantic-release/git',
     [
       '@semantic-release/github',
       {
