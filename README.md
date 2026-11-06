@@ -5,13 +5,13 @@ Copy the last agent response to the system clipboard.
 ## Install
 
 ```bash
-zot ext install /home/roman/Dev/zot-copy-last
+zot ext install https://github.com/unlight/zot-copy-last
 ```
 
 Or run ad-hoc:
 
 ```bash
-zot --ext /home/roman/Dev/zot-copy-last
+zot --ext ./zot-copy-last
 ```
 
 Restart zot after installing or updating.
