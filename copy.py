@@ -56,7 +56,7 @@ def copy_to_clipboard(text):
             continue
         found_any = True
         try:
-            proc = subprocess.run([exe, *argv[1:]], input=text, capture_output=True, timeout=2, text=True)
+            proc = subprocess.run([exe, *argv[1:]], input=text, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5, text=True)
             if proc.returncode == 0:
                 return True, ""
         except Exception as err:
