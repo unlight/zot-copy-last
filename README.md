@@ -78,8 +78,9 @@ Releases are cut by CI, never by hand. `.github/workflows/release.yml` runs
   the release tooling is installed by `npx` with versions pinned in the
   workflow, and `release.config.mjs` only configures the plugins.
 
-`.github/workflows/ci.yml` runs the test suite on Python 3.9, 3.12 and 3.13 for
-every push and pull request.
+`.github/workflows/ci.yml` runs the test suite on Python 3.9, 3.12 and 3.14 for
+every push and pull request. It stays on `ubuntu-24.04`: the runner image has to
+ship a prebuilt interpreter for every entry in the matrix.
 
 ## Requirements
 
