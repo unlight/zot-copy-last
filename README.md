@@ -1,4 +1,4 @@
-# zot-copy
+# zot-copy-last
 
 Copy the last agent response to the system clipboard.
 
@@ -55,34 +55,6 @@ system clipboard and posts a confirmation note back into the chat.
 
 ## TODO / Ideas
 
-### Comparison
-
-Compared with the built-in `/copy` implementations in Claude Code 2.1.316 and
-Pi 1.5.0.
-
-| Capability             | Claude Code    | Pi       | zot-copy |
-| ---------------------- | -------------- | -------- | -------- |
-| Copy last response     | yes            | yes      | yes      |
-| Copy selection         | copy-on-select | `Ctrl+X` | no       |
-| `/copy N`              | yes            | no       | no       |
-| Code-block picker      | yes            | no       | no       |
-| Always full response   | yes            | no       | no       |
-| Write to file          | `w`            | no       | no       |
-| OSC 52 / SSH           | yes            | yes      | no       |
-| tmux support           | yes            | yes      | no       |
-| Windows / Termux / WSL | yes            | yes      | no       |
-| Copy during a new turn | yes            | yes      | yes      |
-
-Pi's `Ctrl+X` copies the selection when one exists, otherwise the last
-assistant message. Claude Code also has an optional index, markdown-table
-alignment, quoted-text handling and copy-on-select. Pi has a notably robust
-clipboard chain: native clipboard, platform commands, WSL PowerShell, Termux
-and OSC 52, with concrete errors instead of a false success.
-
-### Ideas
-
-- **P0 (done)** Commit responses on `turn_end`, discard `tool_use` steps and
-  keep the previous completed answer across `turn_start`.
 - **P1** Keep a short response history and support `/copy N`.
 - **P1** Add `/copy file [path]` to bypass the clipboard on SSH/headless hosts.
 - **P1** Add a panel picker for fenced code blocks, the full response and an
