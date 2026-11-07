@@ -1,14 +1,20 @@
+> **Deprecated:** This extension is superseded by
+> [zot-copy](https://github.com/unlight/zot-copy), which supports Markdown,
+> Jira wiki markup and file output. Install that instead.
+
 # zot-copy-last
 
 Copy the last agent response to the system clipboard.
 
 ## Install
 
+This extension is no longer maintained. Install the replacement:
+
 ```bash
-zot ext install https://github.com/unlight/zot-copy-last
+zot ext install https://github.com/unlight/zot-copy
 ```
 
-Or run ad-hoc:
+For reference, the old ad-hoc command was:
 
 ```bash
 zot --ext ./zot-copy-last
